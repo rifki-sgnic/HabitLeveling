@@ -15,59 +15,29 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import com.mrifkii.habitleveling.domain.model.Player
-import com.mrifkii.habitleveling.domain.model.PlayerStats
-import com.mrifkii.habitleveling.domain.model.Quest
-import com.mrifkii.habitleveling.domain.model.QuestType
-import com.mrifkii.habitleveling.domain.usecase.CompleteQuestUseCase
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mrifkii.habitleveling.ui.status.StatusScreen
+import com.mrifkii.habitleveling.ui.status.StatusViewModel
 import com.mrifkii.habitleveling.ui.quest.QuestScreen
+import com.mrifkii.habitleveling.ui.quest.QuestViewModel
 import com.mrifkii.habitleveling.ui.theme.HabitLevelingTheme
 import com.mrifkii.habitleveling.ui.theme.SystemBlue
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    @Inject
-    lateinit var completeQuestUseCase: CompleteQuestUseCase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         enableEdgeToEdge()
         setContent {
-            var player by remember {
-                mutableStateOf(
-                    Player(
-                        name = "Sung Jin-Woo",
-                        jobClass = "Shadow Monarch",
-                        title = "Wolf Slayer",
-                        rank = "S",
-                        level = 1,
-                        hp = 100,
-                        maxHp = 100,
-                        mp = 10,
-                        maxMp = 10,
-                        fatigue = 0,
-                        gold = 0,
-                        remainingStatPoints = 0,
-                        stats = PlayerStats()
-                    )
-                )
-            }
+            viewModel<MainViewModel>()
+            val statusViewModel: StatusViewModel = viewModel()
+            val questViewModel: QuestViewModel = viewModel()
 
-            var quests by remember {
-                mutableStateOf(
-                    listOf(
-                        Quest("1", "Push-ups", "100 times", QuestType.DAILY, rewardXp = 50f, rewardGold = 100),
-                        Quest("2", "Sit-ups", "100 times", QuestType.DAILY, rewardXp = 50f, rewardGold = 100),
-                        Quest("3", "Squats", "100 times", QuestType.DAILY, rewardXp = 50f, rewardGold = 100),
-                        Quest("4", "Running", "10 km", QuestType.DAILY, rewardXp = 100f, rewardGold = 200)
-                    )
-                )
-            }
+            val player by statusViewModel.player.collectAsState()
+            val quests by questViewModel.quests.collectAsState()
 
             var currentTab by remember { mutableIntStateOf(0) }
 
@@ -110,13 +80,26 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
                         when (currentTab) {
-                            0 -> StatusScreen(player = player)
+                            0 -> player?.let {
+                                StatusScreen(
+                                    player = it,
+                                    onIncreaseStat = { statName ->
+                                        statusViewModel.increaseStat(statName)
+                                    }
+                                )
+                            } ?: Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = SystemBlue)
+                            }
                             1 -> QuestScreen(
                                 quests = quests,
                                 onCompleteQuest = { completedQuest ->
-                                    val (updatedPlayer, updatedQuest) = completeQuestUseCase(player, completedQuest)
-                                    player = updatedPlayer
-                                    quests = quests.map { if (it.id == updatedQuest.id) updatedQuest else it }
+                                    questViewModel.completeQuest(completedQuest)
+                                },
+                                onGenerateAiQuests = {
+                                    questViewModel.generateNewQuests()
                                 }
                             )
                         }
