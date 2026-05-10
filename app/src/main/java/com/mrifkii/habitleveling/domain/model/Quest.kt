@@ -1,7 +1,7 @@
 package com.mrifkii.habitleveling.domain.model
 
 enum class QuestType {
-    DAILY, EMERGENCY, SPECIAL, JOB_CHANGE
+    DAILY, EMERGENCY, SPECIAL, JOB_CHANGE, PENALTY
 }
 
 data class Quest(

@@ -14,6 +14,7 @@ data class Player(
     val xp: Float = 0f,
     val gold: Int = 0,
     val remainingStatPoints: Int = 0,
+    val lastCheckIn: Long = System.currentTimeMillis(),
     val stats: PlayerStats = PlayerStats()
 )
 

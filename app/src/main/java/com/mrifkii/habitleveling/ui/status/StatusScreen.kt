@@ -28,7 +28,10 @@ import com.mrifkii.habitleveling.ui.theme.HabitLevelingTheme
 import com.mrifkii.habitleveling.ui.theme.SystemBlue
 
 @Composable
-fun StatusScreen(player: Player) {
+fun StatusScreen(
+    player: Player,
+    onIncreaseStat: (String) -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -77,7 +80,7 @@ fun StatusScreen(player: Player) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Stats Section
-                StatsSection(player)
+                StatsSection(player, onIncreaseStat)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -180,7 +183,10 @@ fun GlowProgressBar(label: String, current: Int, max: Int, color: Color) {
 }
 
 @Composable
-fun StatsSection(player: Player) {
+fun StatsSection(
+    player: Player,
+    onIncreaseStat: (String) -> Unit
+) {
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -206,16 +212,31 @@ fun StatsSection(player: Player) {
         
         Spacer(modifier = Modifier.height(16.dp))
 
-        StatItem("STRENGTH", player.stats.strength, player.remainingStatPoints > 0)
-        StatItem("VITALITY", player.stats.vitality, player.remainingStatPoints > 0)
-        StatItem("AGILITY", player.stats.agility, player.remainingStatPoints > 0)
-        StatItem("INTELLIGENCE", player.stats.intelligence, player.remainingStatPoints > 0)
-        StatItem("PERCEPTION", player.stats.perception, player.remainingStatPoints > 0)
+        StatItem("STRENGTH", player.stats.strength, player.remainingStatPoints > 0) {
+            onIncreaseStat("STRENGTH")
+        }
+        StatItem("VITALITY", player.stats.vitality, player.remainingStatPoints > 0) {
+            onIncreaseStat("VITALITY")
+        }
+        StatItem("AGILITY", player.stats.agility, player.remainingStatPoints > 0) {
+            onIncreaseStat("AGILITY")
+        }
+        StatItem("INTELLIGENCE", player.stats.intelligence, player.remainingStatPoints > 0) {
+            onIncreaseStat("INTELLIGENCE")
+        }
+        StatItem("PERCEPTION", player.stats.perception, player.remainingStatPoints > 0) {
+            onIncreaseStat("PERCEPTION")
+        }
     }
 }
 
 @Composable
-fun StatItem(label: String, value: Int, canIncrease: Boolean) {
+fun StatItem(
+    label: String,
+    value: Int,
+    canIncrease: Boolean,
+    onIncrease: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -242,7 +263,7 @@ fun StatItem(label: String, value: Int, canIncrease: Boolean) {
                     modifier = Modifier
                         .size(20.dp)
                         .border(1.dp, SystemBlue, RoundedCornerShape(4.dp))
-                        .clickable { /* TODO */ }
+                        .clickable { onIncrease() }
                 )
             }
         }

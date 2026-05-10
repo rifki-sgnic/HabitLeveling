@@ -1,11 +1,17 @@
 package com.mrifkii.habitleveling.domain.usecase
 
 import com.mrifkii.habitleveling.domain.repository.PlayerRepository
+import com.mrifkii.habitleveling.domain.service.LevelingService
+import kotlinx.coroutines.flow.first
+import javax.inject.Inject
 
-class AddXpUseCase(private val repository: PlayerRepository) {
+class AddXpUseCase @Inject constructor(
+    private val repository: PlayerRepository,
+    private val levelingService: LevelingService
+) {
     suspend operator fun invoke(xpGained: Float) {
-        val currentPlayer = repository.getPlayerStatus()
-        // level up logic
-        repository.updateXp(currentPlayer.xp + xpGained)
+        val currentPlayer = repository.getPlayer().first() ?: return
+        val updatedPlayer = levelingService.processXpGain(currentPlayer, xpGained)
+        repository.updatePlayer(updatedPlayer)
     }
 }
