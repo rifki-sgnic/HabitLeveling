@@ -1,93 +1,70 @@
 package com.mrifkii.habitleveling.ui.quest.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mrifkii.habitleveling.domain.model.Quest
-import com.mrifkii.habitleveling.domain.model.QuestType
-import com.mrifkii.habitleveling.ui.theme.SystemBlue
+import com.mrifkii.habitleveling.ui.components.HudPanel
+import com.mrifkii.habitleveling.ui.theme.LocalShadowColors
+import com.mrifkii.habitleveling.ui.theme.LocalShadowTypography
 
 @Composable
 fun QuestItem(
     quest: Quest,
     onComplete: (Quest) -> Unit
 ) {
-    Box(
+    val colors = MaterialTheme.colorScheme
+    val shadowColors = LocalShadowColors.current
+    val shadowTypography = LocalShadowTypography.current
+
+    HudPanel(
+        isActive = !quest.isCompleted,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (quest.isCompleted) Color.DarkGray.copy(alpha = 0.3f) else Color.DarkGray.copy(alpha = 0.1f))
-            .border(
-                width = 1.dp,
-                color = if (quest.isCompleted) Color.Gray else SystemBlue.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(8.dp)
-            )
             .clickable(enabled = !quest.isCompleted) { onComplete(quest) }
-            .padding(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Checkbox(
+                checked = quest.isCompleted,
+                onCheckedChange = { if (!quest.isCompleted) onComplete(quest) },
+                colors = CheckboxDefaults.colors(
+                    checkedColor = colors.primary,
+                    uncheckedColor = colors.onSurfaceVariant,
+                    checkmarkColor = colors.onPrimary
+                ),
+                modifier = Modifier.size(20.dp)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = quest.title,
-                    color = if (quest.isCompleted) Color.Gray else Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = if (quest.isCompleted) colors.onSurfaceVariant else colors.onSurface,
+                        textDecoration = if (quest.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                    )
                 )
                 Text(
                     text = quest.description,
-                    color = Color.LightGray,
-                    fontSize = 14.sp
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
                 )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Row {
-                    RewardBadge(text = "${quest.rewardXp.toInt()} XP", color = SystemBlue)
-                    if (quest.rewardGold > 0) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        RewardBadge(text = "${quest.rewardGold} G", color = Color.Yellow)
-                    }
-                }
             }
 
-            if (quest.isCompleted) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Completed",
-                    tint = Color.Green,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Text(
+                text = "${quest.rewardXp.toInt()} XP",
+                style = shadowTypography.timer,
+                color = if (quest.isCompleted) shadowColors.success.color else colors.primary
+            )
         }
-    }
-}
-
-@Composable
-fun RewardBadge(text: String, color: Color) {
-    Box(
-        modifier = Modifier
-            .border(0.5.dp, color, RoundedCornerShape(4.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-    ) {
-        Text(text = text, color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }
