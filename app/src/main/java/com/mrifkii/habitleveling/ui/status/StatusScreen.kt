@@ -1,316 +1,296 @@
 package com.mrifkii.habitleveling.ui.status
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mrifkii.habitleveling.domain.model.Player
 import com.mrifkii.habitleveling.domain.model.PlayerStats
-import com.mrifkii.habitleveling.ui.components.SystemWindow
-import com.mrifkii.habitleveling.ui.theme.HabitLevelingTheme
-import com.mrifkii.habitleveling.ui.theme.SystemBlue
+import com.mrifkii.habitleveling.ui.components.HudPanel
+import com.mrifkii.habitleveling.ui.components.StatBar
+import com.mrifkii.habitleveling.ui.components.SystemMessage
+import com.mrifkii.habitleveling.ui.theme.*
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun StatusScreen(
     player: Player,
     onIncreaseStat: (String) -> Unit = {}
 ) {
-    Box(
+    val colors = MaterialTheme.colorScheme
+    val shadowTypography = LocalShadowTypography.current
+    val shadowColors = LocalShadowColors.current
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black) // Outer background
+            .background(colors.background)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
-        SystemWindow(
+        // [SHADOW GUIDE] message
+        SystemMessage(
+            message = "Performance stable. Recommend prioritizing Agility for current quest set.",
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
+        // Identity Panel
+        HudPanel(tag = "PLAYER IDENTITY", isActive = true) {
+            InfoRow("NAME", player.name, isPrimary = true)
+            InfoRow("JOB", player.jobClass)
+            InfoRow("TITLE", player.title)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Hexagonal Stat Radar
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
+                .fillMaxWidth()
+                .height(300.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier
-                    .verticalScroll(rememberScrollState())
+            StatRadar(stats = player.stats)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Vitals Panel
+        HudPanel(tag = "VITALS", isActive = true) {
+            StatBar(icon = Icons.Outlined.Favorite, label = "HP", current = player.hp, max = player.maxHp, color = shadowColors.hp.color)
+            StatBar(icon = Icons.Outlined.FlashOn, label = "MP", current = player.mp, max = player.maxMp, color = shadowColors.mp.color)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Detailed Stats Panel
+        HudPanel(tag = "ATTRIBUTES", isActive = true) {
+            if (player.remainingStatPoints > 0) {
+                Text(
+                    text = "AVAILABLE POINTS: ${player.remainingStatPoints}",
+                    style = shadowTypography.section,
+                    color = shadowColors.warning.color,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+
+            StatRow("STR", player.stats.strength, player.remainingStatPoints > 0) { onIncreaseStat("STRENGTH") }
+            StatRow("VIT", player.stats.vitality, player.remainingStatPoints > 0) { onIncreaseStat("VITALITY") }
+            StatRow("AGI", player.stats.agility, player.remainingStatPoints > 0) { onIncreaseStat("AGILITY") }
+            StatRow("INT", player.stats.intelligence, player.remainingStatPoints > 0) { onIncreaseStat("INTELLIGENCE") }
+            StatRow("SEN", player.stats.perception, player.remainingStatPoints > 0) { onIncreaseStat("PERCEPTION") }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Currency Panel
+        HudPanel(isActive = false) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Header: Status title and Level
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "STATUS",
-                        color = SystemBlue,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 4.sp
-                    )
-                    
-                    LevelBadge(level = player.level)
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Identity Section
-                IdentityInfo(player)
-
-                Spacer(modifier = Modifier.height(24.dp))
-                HorizontalDivider(color = SystemBlue.copy(alpha = 0.3f), thickness = 1.dp)
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Vitals Section
-                VitalsSection(player)
-
-                Spacer(modifier = Modifier.height(24.dp))
-                HorizontalDivider(color = SystemBlue.copy(alpha = 0.3f), thickness = 1.dp)
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Stats Section
-                StatsSection(player, onIncreaseStat)
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Currency
-                GoldDisplay(gold = player.gold)
+                Text("GOLD", style = shadowTypography.section, color = shadowColors.warning.color)
+                Text(
+                    "${player.gold} G",
+                    style = shadowTypography.statNumber.copy(fontSize = 20.sp),
+                    color = colors.onSurface
+                )
             }
         }
+
+        Spacer(modifier = Modifier.height(100.dp))
     }
 }
 
 @Composable
-fun LevelBadge(level: Int) {
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .border(2.dp, SystemBlue, CircleShape)
-            .padding(4.dp)
-            .border(1.dp, SystemBlue.copy(alpha = 0.5f), CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "LV.", color = SystemBlue, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(text = level.toString(), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-        }
-    }
-}
-
-@Composable
-fun IdentityInfo(player: Player) {
-    Column {
-        InfoRow("NAME:", player.name, isPrimary = true)
-        InfoRow("JOB:", player.jobClass)
-        InfoRow("TITLE:", player.title)
-        InfoRow("RANK:", player.rank, color = getRankColor(player.rank))
-    }
-}
-
-@Composable
-fun InfoRow(label: String, value: String, isPrimary: Boolean = false, color: Color = Color.White) {
+private fun InfoRow(label: String, value: String, isPrimary: Boolean = false) {
+    val colors = MaterialTheme.colorScheme
+    val shadowTypography = LocalShadowTypography.current
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, color = Color.Gray, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(label, style = shadowTypography.statLabel, color = colors.onSurfaceVariant)
         Text(
-            text = value,
-            color = if (isPrimary) SystemBlue else color,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.ExtraBold
+            value.uppercase(),
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (isPrimary) colors.primary else colors.onSurface
         )
     }
 }
 
 @Composable
-fun VitalsSection(player: Player) {
-    Column {
-        GlowProgressBar(label = "HP", current = player.hp, max = player.maxHp, color = SystemBlue)
-        Spacer(modifier = Modifier.height(12.dp))
-        GlowProgressBar(label = "MP", current = player.mp, max = player.maxMp, color = Color(0xFF9C27B0))
-        Spacer(modifier = Modifier.height(12.dp))
-        GlowProgressBar(label = "FATIGUE", current = player.fatigue, max = 100, color = Color.Red)
-    }
-}
-
-@Composable
-fun GlowProgressBar(label: String, current: Int, max: Int, color: Color) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(text = label, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Text(text = "$current / $max", color = Color.White, fontSize = 12.sp)
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(10.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(Color.DarkGray.copy(alpha = 0.5f))
-                .border(0.5.dp, color.copy(alpha = 0.3f), RoundedCornerShape(2.dp))
-        ) {
-            val progress = (current.toFloat() / max.toFloat()).coerceIn(0f, 1f)
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(progress)
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(color.copy(alpha = 0.7f), color)
-                        )
-                    )
-                    .border(1.dp, color.copy(alpha = 0.8f), RoundedCornerShape(2.dp))
-            )
-        }
-    }
-}
-
-@Composable
-fun StatsSection(
-    player: Player,
-    onIncreaseStat: (String) -> Unit
-) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "STATS",
-                color = SystemBlue,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
-            
-            if (player.remainingStatPoints > 0) {
-                Text(
-                    text = "[Points: ${player.remainingStatPoints}]",
-                    color = Color.Yellow,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-
-        StatItem("STRENGTH", player.stats.strength, player.remainingStatPoints > 0) {
-            onIncreaseStat("STRENGTH")
-        }
-        StatItem("VITALITY", player.stats.vitality, player.remainingStatPoints > 0) {
-            onIncreaseStat("VITALITY")
-        }
-        StatItem("AGILITY", player.stats.agility, player.remainingStatPoints > 0) {
-            onIncreaseStat("AGILITY")
-        }
-        StatItem("INTELLIGENCE", player.stats.intelligence, player.remainingStatPoints > 0) {
-            onIncreaseStat("INTELLIGENCE")
-        }
-        StatItem("PERCEPTION", player.stats.perception, player.remainingStatPoints > 0) {
-            onIncreaseStat("PERCEPTION")
-        }
-    }
-}
-
-@Composable
-fun StatItem(
-    label: String,
-    value: Int,
-    canIncrease: Boolean,
-    onIncrease: () -> Unit
-) {
+private fun StatRow(label: String, value: Int, canIncrease: Boolean, onIncrease: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val shadowTypography = LocalShadowTypography.current
+    
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, color = Color.White, fontSize = 15.sp)
+        Text(label, style = shadowTypography.section, color = colors.onSurfaceVariant)
         
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = value.toString(),
-                color = SystemBlue,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.ExtraBold
+                value.toString(),
+                style = shadowTypography.statNumber.copy(fontSize = 18.sp),
+                color = colors.primary
             )
             
             if (canIncrease) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Increase",
-                    tint = SystemBlue,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .border(1.dp, SystemBlue, RoundedCornerShape(4.dp))
-                        .clickable { onIncrease() }
-                )
+                Spacer(modifier = Modifier.width(12.dp))
+                IconButton(
+                    onClick = onIncrease,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Add,
+                        contentDescription = "Increase",
+                        tint = colors.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun GoldDisplay(gold: Int) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color.Yellow.copy(alpha = 0.1f))
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(text = "GOLD", color = Color.Yellow, fontWeight = FontWeight.Bold)
-        Text(
-            text = "$gold G",
-            color = Color.White,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.ExtraBold
-        )
-    }
-}
+private fun StatRadar(stats: PlayerStats) {
+    val colors = MaterialTheme.colorScheme
+    val shadowTypography = LocalShadowTypography.current
+    val textMeasurer = rememberTextMeasurer()
+    
+    val statValues = listOf(
+        stats.strength, stats.intelligence, stats.agility,
+        stats.perception, stats.vitality, stats.perception // 6 axes
+    ).map { it.toFloat() }
+    
+    val labels = listOf("STR", "INT", "AGI", "SEN", "VIT", "PER")
+    val maxStatValue = 100f
 
-fun getRankColor(rank: String): Color {
-    return when (rank.uppercase()) {
-        "S" -> Color(0xFFFFD700) // Gold
-        "A" -> Color(0xFFFF4500) // OrangeRed
-        "B" -> Color(0xFF9400D3) // DarkViolet
-        "C" -> Color(0xFF1E90FF) // DodgerBlue
-        else -> Color.White
+    Canvas(modifier = Modifier.size(280.dp)) {
+        val center = Offset(size.width / 2, size.height / 2)
+        val radius = size.minDimension / 2 - 50.dp.toPx()
+        
+        // 1. Draw 3 concentric hex rings
+        for (i in 1..3) {
+            val ringRadius = radius * (i / 3f)
+            val path = Path()
+            for (j in 0..5) {
+                val angle = Math.toRadians(j * 60.0 - 90.0)
+                val x = center.x + ringRadius * cos(angle).toFloat()
+                val y = center.y + ringRadius * sin(angle).toFloat()
+                if (j == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            path.close()
+            drawPath(path, colors.outlineVariant, alpha = 0.5f, style = Stroke(1.dp.toPx()))
+        }
+
+        // 2. Draw 6 axis lines and labels
+        for (j in 0..5) {
+            val angle = Math.toRadians(j * 60.0 - 90.0)
+            val end = Offset(
+                center.x + radius * cos(angle).toFloat(),
+                center.y + radius * sin(angle).toFloat()
+            )
+            drawLine(colors.outlineVariant, center, end, strokeWidth = 1.dp.toPx(), alpha = 0.6f)
+            
+            // Labels and Values
+            val labelRadius = radius + 20.dp.toPx()
+            val lx = center.x + labelRadius * cos(angle).toFloat()
+            val ly = center.y + labelRadius * sin(angle).toFloat()
+            
+            val labelText = labels[j]
+            val valueText = statValues[j].toInt().toString()
+            
+            val labelLayout = textMeasurer.measure(labelText, shadowTypography.statLabel.copy(color = colors.onSurfaceVariant))
+            val valueLayout = textMeasurer.measure(valueText, shadowTypography.timer.copy(color = colors.onSurface, fontSize = 12.sp))
+            
+            drawText(
+                textLayoutResult = labelLayout,
+                topLeft = Offset(lx - labelLayout.size.width / 2, ly - labelLayout.size.height)
+            )
+            drawText(
+                textLayoutResult = valueLayout,
+                topLeft = Offset(lx - valueLayout.size.width / 2, ly)
+            )
+        }
+
+        // 3. Draw Stat Polygon
+        val statPath = Path()
+        for (j in 0..5) {
+            val statVal = statValues.getOrElse(j) { 10f }.coerceIn(0f, maxStatValue)
+            val ringRadius = radius * (statVal / maxStatValue)
+            val angle = Math.toRadians(j * 60.0 - 90.0)
+            val x = center.x + ringRadius * cos(angle).toFloat()
+            val y = center.y + ringRadius * sin(angle).toFloat()
+            if (j == 0) statPath.moveTo(x, y) else statPath.lineTo(x, y)
+        }
+        statPath.close()
+        drawPath(statPath, colors.primary, alpha = 0.2f)
+        drawPath(statPath, colors.primary, style = Stroke(1.4.dp.toPx()))
+
+        // 4. Vertex Dots
+        for (j in 0..5) {
+            val statVal = statValues.getOrElse(j) { 10f }.coerceIn(0f, maxStatValue)
+            val ringRadius = radius * (statVal / maxStatValue)
+            val angle = Math.toRadians(j * 60.0 - 90.0)
+            drawCircle(
+                colors.onPrimaryContainer,
+                radius = 2.5.dp.toPx(),
+                center = Offset(
+                    center.x + ringRadius * cos(angle).toFloat(),
+                    center.y + ringRadius * sin(angle).toFloat()
+                )
+            )
+        }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun StatusScreenPreview() {
-    HabitLevelingTheme {
+    HabitLevelingTheme(darkTheme = true) {
         StatusScreen(
             player = Player(
-                name = "Sung Jin-Woo",
-                jobClass = "Shadow Monarch",
-                title = "Wolf Slayer",
-                rank = "S"
+                name = "SUNG JIN-WOO",
+                jobClass = "SHADOW MONARCH",
+                title = "WOLF SLAYER",
+                rank = "S",
+                level = 10,
+                hp = 850,
+                maxHp = 1000,
+                mp = 450,
+                maxMp = 500,
+                remainingStatPoints = 5,
+                gold = 12500,
+                stats = PlayerStats(strength = 80, agility = 75, intelligence = 40, vitality = 90, perception = 60)
             )
         )
     }
