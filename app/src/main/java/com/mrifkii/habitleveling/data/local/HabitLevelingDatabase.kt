@@ -9,7 +9,7 @@ import com.mrifkii.habitleveling.data.local.entity.QuestEntity
 
 @Database(
     entities = [PlayerEntity::class, QuestEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class HabitLevelingDatabase : RoomDatabase() {

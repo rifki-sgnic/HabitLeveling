@@ -13,6 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -77,6 +78,56 @@ fun StatusScreen(
             message = "Performance stable. Recommend prioritizing Agility for current quest set.",
             modifier = Modifier.padding(bottom = 24.dp)
         )
+
+        // Rank-Up Warning (UI Feedback)
+        val isAtCap = isAtRankCap(player.level, player.rank)
+        if (isAtCap) {
+            Surface(
+                color = shadowColors.warning.color.copy(alpha = 0.1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp)
+                    .drawBehind {
+                        val strokeWidth = 1.dp.toPx()
+                        drawLine(
+                            color = shadowColors.warning.color,
+                            start = Offset(0f, 0f),
+                            end = Offset(size.width, 0f),
+                            strokeWidth = strokeWidth
+                        )
+                        drawLine(
+                            color = shadowColors.warning.color,
+                            start = Offset(0f, size.height),
+                            end = Offset(size.width, size.height),
+                            strokeWidth = strokeWidth
+                        )
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.ErrorOutline,
+                        contentDescription = null,
+                        tint = shadowColors.warning.color
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "[RANK UP QUEST REQUIRED]",
+                            style = shadowTypography.section,
+                            color = shadowColors.warning.color
+                        )
+                        Text(
+                            text = "You have reached the level cap for Rank ${player.rank}. Complete a 'Job Change' quest to Arise.",
+                            style = shadowTypography.statLabel,
+                            color = colors.onSurface
+                        )
+                    }
+                }
+            }
+        }
 
         // Identity Panel
         HudPanel(tag = "PLAYER IDENTITY", isActive = true) {
@@ -150,7 +201,7 @@ fun StatusScreen(
                     StatType.INTELLIGENCE
                 )
             }
-            StatRow("SEN", player.stats.perception, player.remainingStatPoints > 0) {
+            StatRow("PER", player.stats.perception, player.remainingStatPoints > 0) {
                 onIncreaseStat(
                     StatType.PERCEPTION
                 )
@@ -245,23 +296,25 @@ private fun StatRadar(stats: PlayerStats) {
     val textMeasurer = rememberTextMeasurer()
 
     val statValues = listOf(
-        stats.strength, stats.intelligence, stats.agility,
-        stats.perception, stats.vitality, stats.perception // 6 axes
-    ).map { it.toFloat() }
+        stats.strength.toFloat(), stats.intelligence.toFloat(), stats.agility.toFloat(),
+        stats.vitality.toFloat(), stats.perception.toFloat()
+    )
 
-    val labels = listOf("STR", "INT", "AGI", "SEN", "VIT", "PER")
+    val labels = listOf("STR", "INT", "AGI", "VIT", "PER")
     val maxStatValue = 100f
+    val axisCount = labels.size
+    val angleStep = 360.0 / axisCount
 
     Canvas(modifier = Modifier.size(280.dp)) {
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.minDimension / 2 - 50.dp.toPx()
 
-        // 1. Draw 3 concentric hex rings
+        // 1. Draw 3 concentric rings (Pentagon)
         for (i in 1..3) {
             val ringRadius = radius * (i / 3f)
             val path = Path()
-            for (j in 0..5) {
-                val angle = Math.toRadians(j * 60.0 - 90.0)
+            for (j in 0 until axisCount) {
+                val angle = Math.toRadians(j * angleStep - 90.0)
                 val x = center.x + ringRadius * cos(angle).toFloat()
                 val y = center.y + ringRadius * sin(angle).toFloat()
                 if (j == 0) path.moveTo(x, y) else path.lineTo(x, y)
@@ -270,9 +323,9 @@ private fun StatRadar(stats: PlayerStats) {
             drawPath(path, colors.outlineVariant, alpha = 0.5f, style = Stroke(1.dp.toPx()))
         }
 
-        // 2. Draw 6 axis lines and labels
-        for (j in 0..5) {
-            val angle = Math.toRadians(j * 60.0 - 90.0)
+        // 2. Draw axis lines and labels
+        for (j in 0 until axisCount) {
+            val angle = Math.toRadians(j * angleStep - 90.0)
             val end = Offset(
                 center.x + radius * cos(angle).toFloat(),
                 center.y + radius * sin(angle).toFloat()
@@ -308,10 +361,10 @@ private fun StatRadar(stats: PlayerStats) {
 
         // 3. Draw Stat Polygon
         val statPath = Path()
-        for (j in 0..5) {
+        for (j in 0 until axisCount) {
             val statVal = statValues.getOrElse(j) { 10f }.coerceIn(0f, maxStatValue)
             val ringRadius = radius * (statVal / maxStatValue)
-            val angle = Math.toRadians(j * 60.0 - 90.0)
+            val angle = Math.toRadians(j * angleStep - 90.0)
             val x = center.x + ringRadius * cos(angle).toFloat()
             val y = center.y + ringRadius * sin(angle).toFloat()
             if (j == 0) statPath.moveTo(x, y) else statPath.lineTo(x, y)
@@ -321,10 +374,10 @@ private fun StatRadar(stats: PlayerStats) {
         drawPath(statPath, colors.primary, style = Stroke(1.4.dp.toPx()))
 
         // 4. Vertex Dots
-        for (j in 0..5) {
+        for (j in 0 until axisCount) {
             val statVal = statValues.getOrElse(j) { 10f }.coerceIn(0f, maxStatValue)
             val ringRadius = radius * (statVal / maxStatValue)
-            val angle = Math.toRadians(j * 60.0 - 90.0)
+            val angle = Math.toRadians(j * angleStep - 90.0)
             drawCircle(
                 colors.onPrimaryContainer,
                 radius = 2.5.dp.toPx(),
@@ -340,13 +393,13 @@ private fun StatRadar(stats: PlayerStats) {
 @Preview(showBackground = true)
 @Composable
 fun StatusScreenPreview() {
-    HabitLevelingTheme(darkTheme = true) {
+    HabitLevelingTheme {
         val player = Player(
             name = "SUNG JIN-WOO",
             jobClass = "SHADOW MONARCH",
             title = "WOLF SLAYER",
-            rank = "S",
-            level = 10,
+            rank = "E",
+            level = 25,
             hp = 850,
             maxHp = 1000,
             mp = 450,
@@ -367,5 +420,16 @@ fun StatusScreenPreview() {
                 player
             )
         }
+    }
+}
+
+private fun isAtRankCap(level: Int, rank: String): Boolean {
+    return when (rank.uppercase()) {
+        "E" -> level >= 25
+        "D" -> level >= 35
+        "C" -> level >= 50
+        "B" -> level >= 75
+        "A" -> level >= 90
+        else -> false
     }
 }

@@ -11,7 +11,11 @@ class AddXpUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(xpGained: Float) {
         val currentPlayer = repository.getPlayer().first() ?: return
-        val updatedPlayer = levelingService.processXpGain(currentPlayer, xpGained)
+        val updatedPlayer = levelingService.processXpGain(
+            player = currentPlayer, 
+            xpGain = xpGained,
+            hasCompletedRankUpQuest = false
+        )
         repository.updatePlayer(updatedPlayer)
     }
 }
