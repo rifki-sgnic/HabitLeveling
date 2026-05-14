@@ -2,18 +2,19 @@ package com.mrifkii.habitleveling.data.remote
 
 import android.util.Log
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.RequestOptions
-import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
 import com.mrifkii.habitleveling.domain.model.Player
 import com.mrifkii.habitleveling.domain.model.Quest
 import com.mrifkii.habitleveling.domain.model.QuestType
 import kotlinx.serialization.json.Json
+import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import javax.inject.Inject
 import javax.inject.Named
 
 class AiQuestService @Inject constructor(
-    @Named("gemini_api_key") private val apiKey: String
+    @param:Named("gemini_api_key") private val apiKey: String
 ) {
     private val model = GenerativeModel(
         modelName = "gemini-2.5-flash",
@@ -65,18 +66,18 @@ class AiQuestService @Inject constructor(
         return try {
             val response = model.generateContent(prompt)
             val jsonText = response.text?.trim() ?: return emptyList()
-            
+
             Log.d("AiQuestService", "RAW RESPONSE: $jsonText")
 
             // Bersihkan format markdown jika AI nakal tetep ngasih ```json
             val cleanJson = jsonText.removeSurrounding("```json", "```").trim()
-            
-            val json = Json { 
-                ignoreUnknownKeys = true 
+
+            val json = Json {
+                ignoreUnknownKeys = true
                 coerceInputValues = true
             }
             val generatedQuests = json.decodeFromString<List<QuestData>>(cleanJson)
-            generatedQuests.map { 
+            generatedQuests.map {
                 Quest(
                     id = it.id,
                     title = it.title,
@@ -88,8 +89,23 @@ class AiQuestService @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            Log.e("AiQuestService", "ERROR GENERATING QUESTS", e)
-            emptyList()
+
+            when (e.cause) {
+
+                is UnknownHostException -> {
+                    throw IOException("No Internet Connection")
+                }
+
+                is SocketTimeoutException -> {
+                    throw IOException("Request Timeout")
+                }
+
+                else -> {
+                    throw Exception(
+                        e.message ?: "Unknown AI Error"
+                    )
+                }
+            }
         }
     }
 }

@@ -2,11 +2,12 @@ package com.mrifkii.habitleveling.ui.status
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mrifkii.habitleveling.domain.model.Player
 import com.mrifkii.habitleveling.domain.repository.PlayerRepository
+import com.mrifkii.habitleveling.ui.model.PlayerUIState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -16,34 +17,66 @@ class StatusViewModel @Inject constructor(
     private val repository: PlayerRepository
 ) : ViewModel() {
 
-    val player: StateFlow<Player?> = repository.getPlayer()
+    val uiState: StateFlow<PlayerUIState> = repository.getPlayer()
+        .map { player ->
+            PlayerUIState(
+                isLoading = false,
+                player = player
+            )
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
+            initialValue = PlayerUIState(isLoading = true)
         )
 
-    fun increaseStat(statName: String) {
+
+
+    fun increaseStat(statType: StatType) {
         viewModelScope.launch {
-            val currentPlayer = player.value ?: return@launch
+
+            val currentPlayer = uiState.value.player ?: return@launch
+
             if (currentPlayer.remainingStatPoints <= 0) return@launch
 
-            val updatedStats = when (statName.uppercase()) {
-                "STRENGTH" -> currentPlayer.stats.copy(strength = currentPlayer.stats.strength + 1)
-                "VITALITY" -> currentPlayer.stats.copy(vitality = currentPlayer.stats.vitality + 1)
-                "AGILITY" -> currentPlayer.stats.copy(agility = currentPlayer.stats.agility + 1)
-                "INTELLIGENCE" -> currentPlayer.stats.copy(intelligence = currentPlayer.stats.intelligence + 1)
-                "PERCEPTION" -> currentPlayer.stats.copy(perception = currentPlayer.stats.perception + 1)
-                else -> currentPlayer.stats
+            val updatedStats = when (statType) {
+                StatType.STRENGTH ->
+                    currentPlayer.stats.copy(
+                        strength = currentPlayer.stats.strength + 1
+                    )
+
+                StatType.VITALITY ->
+                    currentPlayer.stats.copy(
+                        vitality = currentPlayer.stats.vitality + 1
+                    )
+
+                StatType.AGILITY ->
+                    currentPlayer.stats.copy(
+                        agility = currentPlayer.stats.agility + 1
+                    )
+
+                StatType.INTELLIGENCE ->
+                    currentPlayer.stats.copy(
+                        intelligence = currentPlayer.stats.intelligence + 1
+                    )
+
+                StatType.PERCEPTION ->
+                    currentPlayer.stats.copy(
+                        perception = currentPlayer.stats.perception + 1
+                    )
             }
 
-            if (updatedStats != currentPlayer.stats) {
-                val updatedPlayer = currentPlayer.copy(
+            repository.updatePlayer(
+                currentPlayer.copy(
                     stats = updatedStats,
-                    remainingStatPoints = currentPlayer.remainingStatPoints - 1
+                    remainingStatPoints =
+                        currentPlayer.remainingStatPoints - 1
                 )
-                repository.updatePlayer(updatedPlayer)
-            }
+            )
         }
     }
+}
+
+enum class StatType {
+    STRENGTH, VITALITY, AGILITY, INTELLIGENCE, PERCEPTION
 }

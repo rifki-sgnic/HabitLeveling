@@ -13,6 +13,7 @@ class PlayerRepositoryImpl @Inject constructor(
     private val dao: PlayerDao
 ) : PlayerRepository {
     override fun getPlayer(): Flow<Player?> {
+
         return dao.getPlayer().map { it?.toDomain() }
     }
 
