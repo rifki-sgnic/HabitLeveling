@@ -35,21 +35,20 @@ object DatabaseModule {
             context,
             HabitLevelingDatabase::class.java,
             HabitLevelingDatabase.DATABASE_NAME
-        ).addCallback(object : RoomDatabase.Callback() {
+        )
+            .fallbackToDestructiveMigration(false)
+            .addCallback(object : RoomDatabase.Callback() {
 
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
 
                 CoroutineScope(Dispatchers.IO).launch {
-
-
-
                     database.playerDao.insertPlayer(
                         PlayerEntity(
                             name = "Sung Jin-Woo",
                             jobClass = "Shadow Monarch",
-                            title = "Wolf Slayer",
-                            rank = "S",
+                            title = "Weakest Hunter",
+                            rank = "E",
                             level = 1,
                             hp = 100,
                             maxHp = 100,
@@ -80,7 +79,8 @@ object DatabaseModule {
                                 rewardXp = 50f,
                                 rewardGold = 100,
                                 isCompleted = false,
-                                rewardStatPoints = 0
+                                rewardStatPoints = 0,
+                                createdAt = System.currentTimeMillis()
                             ),
                             QuestEntity(
                                 "2",
@@ -90,7 +90,8 @@ object DatabaseModule {
                                 rewardXp = 50f,
                                 rewardGold = 100,
                                 isCompleted = false,
-                                rewardStatPoints = 0
+                                rewardStatPoints = 0,
+                                createdAt = System.currentTimeMillis()
                             ),
                             QuestEntity(
                                 "3",
@@ -100,7 +101,8 @@ object DatabaseModule {
                                 rewardXp = 50f,
                                 rewardGold = 100,
                                 isCompleted = false,
-                                rewardStatPoints = 0
+                                rewardStatPoints = 0,
+                                createdAt = System.currentTimeMillis()
                             ),
                             QuestEntity(
                                 "4",
@@ -110,7 +112,8 @@ object DatabaseModule {
                                 rewardXp = 100f,
                                 rewardGold = 200,
                                 isCompleted = false,
-                                rewardStatPoints = 0
+                                rewardStatPoints = 0,
+                                createdAt = System.currentTimeMillis()
                             )
                         )
                     )

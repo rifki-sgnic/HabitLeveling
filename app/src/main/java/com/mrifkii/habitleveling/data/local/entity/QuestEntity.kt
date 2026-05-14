@@ -14,7 +14,8 @@ data class QuestEntity(
     val isCompleted: Boolean,
     val rewardXp: Float,
     val rewardGold: Int,
-    val rewardStatPoints: Int
+    val rewardStatPoints: Int,
+    val createdAt: Long
 )
 
 fun QuestEntity.toDomain(): Quest {
@@ -26,7 +27,8 @@ fun QuestEntity.toDomain(): Quest {
         isCompleted = isCompleted,
         rewardXp = rewardXp,
         rewardGold = rewardGold,
-        rewardStatPoints = rewardStatPoints
+        rewardStatPoints = rewardStatPoints,
+        createdAt = createdAt
     )
 }
 
@@ -39,6 +41,7 @@ fun Quest.toEntity(): QuestEntity {
         isCompleted = isCompleted,
         rewardXp = rewardXp,
         rewardGold = rewardGold,
-        rewardStatPoints = rewardStatPoints
+        rewardStatPoints = rewardStatPoints,
+        createdAt = createdAt
     )
 }

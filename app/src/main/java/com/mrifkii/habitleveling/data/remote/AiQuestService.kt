@@ -39,21 +39,30 @@ class AiQuestService @Inject constructor(
             ${previousQuests.joinToString { "${it.title}: ${it.description} (${if (it.isCompleted) "COMPLETED" else "FAILED"})" }}
             
             INSTRUCTIONS:
-            1. Generate 4 NEW Daily Quests.
-            2. SCALING: The difficulty MUST scale with the player's Level and Stats. 
+            1. CHECK FOR RANK UP: 
+               - If Rank E and Level >= 25
+               - If Rank D and Level >= 35
+               - If Rank C and Level >= 50
+               - If Rank B and Level >= 75
+               - If Rank A and Level >= 90
+               IF ANY ABOVE IS TRUE: The player is at a LEVEL CAP. You MUST generate ONE 'RANK_UP' quest in the set. This quest should be very difficult and epic.
+            
+            2. Generate 4 NEW Quests.
+            3. SCALING: The difficulty MUST scale with the player's Level and Stats. 
                - If STR is low, provide strength-building quests.
                - If Level is high, increase quantity significantly (e.g., Level 1: 100 push-ups, Level 10: 250 push-ups).
-            3. REWARDS:
+            4. REWARDS:
                - RewardXp: Scale with difficulty (Higher level = more XP required).
                - RewardGold: Higher rank/level should grant significantly more gold.
                - RewardStatPoints: Rare! Only give 1 stat point for the most difficult quest in the set.
-            4. TONE: Immersive, RPG-style instructions.
+            5. TONE: Immersive, RPG-style instructions.
             
             OUTPUT FORMAT:
             Return ONLY a raw JSON array. Fields:
             - id: unique string (e.g., 'gen_daily_001')
             - title: short epic name
             - description: clear instruction with EXACT quantity
+            - type: string (Either 'DAILY' or 'RANK_UP')
             - rewardXp: float
             - rewardGold: integer
             - rewardStatPoints: integer
@@ -82,28 +91,22 @@ class AiQuestService @Inject constructor(
                     id = it.id,
                     title = it.title,
                     description = it.description,
-                    type = QuestType.DAILY,
+                    type = if (it.type?.uppercase() == "RANK_UP") QuestType.RANK_UP else QuestType.DAILY,
                     rewardXp = it.rewardXp,
                     rewardGold = it.rewardGold,
                     rewardStatPoints = it.rewardStatPoints
                 )
             }
         } catch (e: Exception) {
-
             when (e.cause) {
-
                 is UnknownHostException -> {
                     throw IOException("No Internet Connection")
                 }
-
                 is SocketTimeoutException -> {
                     throw IOException("Request Timeout")
                 }
-
                 else -> {
-                    throw Exception(
-                        e.message ?: "Unknown AI Error"
-                    )
+                    throw Exception(e.message ?: "Unknown AI Error")
                 }
             }
         }
@@ -115,6 +118,7 @@ data class QuestData(
     val id: String,
     val title: String,
     val description: String,
+    val type: String? = "DAILY",
     val rewardXp: Float,
     val rewardGold: Int,
     val rewardStatPoints: Int

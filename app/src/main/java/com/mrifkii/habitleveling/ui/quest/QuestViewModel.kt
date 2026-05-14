@@ -14,7 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -28,15 +28,33 @@ class QuestViewModel @Inject constructor(
     private val generateAiQuestsUseCase: GenerateAiQuestsUseCase
 ) : ViewModel() {
 
+    private val _isLoading = MutableStateFlow(false)
+    private val _errorMessage = MutableStateFlow<String?>(null)
+
     val quests: StateFlow<List<Quest>> = questRepository.getQuests()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-    val _uiState = MutableStateFlow(QuestUIState())
 
-    val uiState = _uiState.asStateFlow()
+    val uiState: StateFlow<QuestUIState> = combine(
+        playerRepository.getPlayer(),
+        _isLoading,
+        _errorMessage
+    ) { player, isLoading, errorMessage ->
+        QuestUIState(
+            player = player,
+            isLoading = isLoading,
+            errorMessage = errorMessage
+        )
+    }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = QuestUIState(isLoading = true)
+        )
+
     fun completeQuest(quest: Quest) {
         viewModelScope.launch {
             val player = playerRepository.getPlayer().first() ?: return@launch
@@ -54,22 +72,17 @@ class QuestViewModel @Inject constructor(
                 when (resource) {
                     is Resource.Success -> {
                         Log.d("QuestViewModel", "success")
-                        _uiState.value = _uiState.value.copy(
-
-                        isLoading = false,
-                        errorMessage = null
-                    )}
+                        _isLoading.value = false
+                        _errorMessage.value = null
+                    }
                     is Resource.Error -> {
                         Log.d("QuestViewModel", "error")
-                        _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = resource.message
-                    )}
+                        _isLoading.value = false
+                        _errorMessage.value = resource.message
+                    }
                     is Resource.Loading -> {
                         Log.d("QuestViewModel", "loading")
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = true
-                        )
+                        _isLoading.value = true
                     }
                 }
             }
