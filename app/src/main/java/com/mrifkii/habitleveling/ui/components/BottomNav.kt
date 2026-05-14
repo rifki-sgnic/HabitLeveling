@@ -10,14 +10,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.mrifkii.habitleveling.navigation.Routes
 
 
 @Composable
 fun BottomNav(
-    currentTab: Int,
-    onTabSelected: (Int) -> Unit
+    currentRoute: String?,
+    onTabSelected: (String) -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
     
@@ -37,8 +37,8 @@ fun BottomNav(
         tonalElevation = 0.dp
     ) {
         NavigationBarItem(
-            selected = currentTab == 0,
-            onClick = { onTabSelected(0) },
+            selected = currentRoute == Routes.Status.route,
+            onClick = { onTabSelected(Routes.Status.route) },
             icon = { 
                 Icon(
                     imageVector = Icons.Outlined.Person, 
@@ -61,8 +61,8 @@ fun BottomNav(
             )
         )
         NavigationBarItem(
-            selected = currentTab == 1,
-            onClick = { onTabSelected(1) },
+            selected = currentRoute == Routes.Quest.route,
+            onClick = { onTabSelected(Routes.Quest.route) },
             icon = { 
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.List, 

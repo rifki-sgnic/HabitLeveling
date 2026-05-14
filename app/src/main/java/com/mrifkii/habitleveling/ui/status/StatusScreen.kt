@@ -9,11 +9,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.drawText
@@ -21,19 +21,45 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.mrifkii.habitleveling.domain.model.Player
 import com.mrifkii.habitleveling.domain.model.PlayerStats
 import com.mrifkii.habitleveling.ui.components.HudPanel
+import com.mrifkii.habitleveling.ui.components.PlayerHeader
 import com.mrifkii.habitleveling.ui.components.StatBar
 import com.mrifkii.habitleveling.ui.components.SystemMessage
 import com.mrifkii.habitleveling.ui.theme.*
 import kotlin.math.cos
 import kotlin.math.sin
 
+
+@Composable
+fun StatusRoute(
+    viewModel: StatusViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    val player = uiState.player
+
+    when {
+        uiState.isLoading -> {
+            CircularProgressIndicator()
+        }
+
+        player != null -> {
+            Column(modifier = Modifier.fillMaxSize()) {
+                PlayerHeader(player)
+                StatusScreen(player, onIncreaseStat = { viewModel.increaseStat(it) })
+            }
+        }
+    }
+
+}
+
 @Composable
 fun StatusScreen(
     player: Player,
-    onIncreaseStat: (String) -> Unit = {}
+    onIncreaseStat: (StatType) -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
     val shadowTypography = LocalShadowTypography.current
@@ -75,8 +101,20 @@ fun StatusScreen(
 
         // Vitals Panel
         HudPanel(tag = "VITALS", isActive = true) {
-            StatBar(icon = Icons.Outlined.Favorite, label = "HP", current = player.hp, max = player.maxHp, color = shadowColors.hp.color)
-            StatBar(icon = Icons.Outlined.FlashOn, label = "MP", current = player.mp, max = player.maxMp, color = shadowColors.mp.color)
+            StatBar(
+                icon = Icons.Outlined.Favorite,
+                label = "HP",
+                current = player.hp,
+                max = player.maxHp,
+                color = shadowColors.hp.color
+            )
+            StatBar(
+                icon = Icons.Outlined.FlashOn,
+                label = "MP",
+                current = player.mp,
+                max = player.maxMp,
+                color = shadowColors.mp.color
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -92,11 +130,31 @@ fun StatusScreen(
                 )
             }
 
-            StatRow("STR", player.stats.strength, player.remainingStatPoints > 0) { onIncreaseStat("STRENGTH") }
-            StatRow("VIT", player.stats.vitality, player.remainingStatPoints > 0) { onIncreaseStat("VITALITY") }
-            StatRow("AGI", player.stats.agility, player.remainingStatPoints > 0) { onIncreaseStat("AGILITY") }
-            StatRow("INT", player.stats.intelligence, player.remainingStatPoints > 0) { onIncreaseStat("INTELLIGENCE") }
-            StatRow("SEN", player.stats.perception, player.remainingStatPoints > 0) { onIncreaseStat("PERCEPTION") }
+            StatRow("STR", player.stats.strength, player.remainingStatPoints > 0) {
+                onIncreaseStat(
+                    StatType.STRENGTH
+                )
+            }
+            StatRow("VIT", player.stats.vitality, player.remainingStatPoints > 0) {
+                onIncreaseStat(
+                    StatType.VITALITY
+                )
+            }
+            StatRow("AGI", player.stats.agility, player.remainingStatPoints > 0) {
+                onIncreaseStat(
+                    StatType.AGILITY
+                )
+            }
+            StatRow("INT", player.stats.intelligence, player.remainingStatPoints > 0) {
+                onIncreaseStat(
+                    StatType.INTELLIGENCE
+                )
+            }
+            StatRow("SEN", player.stats.perception, player.remainingStatPoints > 0) {
+                onIncreaseStat(
+                    StatType.PERCEPTION
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -125,7 +183,7 @@ fun StatusScreen(
 private fun InfoRow(label: String, value: String, isPrimary: Boolean = false) {
     val colors = MaterialTheme.colorScheme
     val shadowTypography = LocalShadowTypography.current
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -145,7 +203,7 @@ private fun InfoRow(label: String, value: String, isPrimary: Boolean = false) {
 private fun StatRow(label: String, value: Int, canIncrease: Boolean, onIncrease: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val shadowTypography = LocalShadowTypography.current
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -154,14 +212,14 @@ private fun StatRow(label: String, value: Int, canIncrease: Boolean, onIncrease:
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, style = shadowTypography.section, color = colors.onSurfaceVariant)
-        
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 value.toString(),
                 style = shadowTypography.statNumber.copy(fontSize = 18.sp),
                 color = colors.primary
             )
-            
+
             if (canIncrease) {
                 Spacer(modifier = Modifier.width(12.dp))
                 IconButton(
@@ -185,19 +243,19 @@ private fun StatRadar(stats: PlayerStats) {
     val colors = MaterialTheme.colorScheme
     val shadowTypography = LocalShadowTypography.current
     val textMeasurer = rememberTextMeasurer()
-    
+
     val statValues = listOf(
         stats.strength, stats.intelligence, stats.agility,
         stats.perception, stats.vitality, stats.perception // 6 axes
     ).map { it.toFloat() }
-    
+
     val labels = listOf("STR", "INT", "AGI", "SEN", "VIT", "PER")
     val maxStatValue = 100f
 
     Canvas(modifier = Modifier.size(280.dp)) {
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.minDimension / 2 - 50.dp.toPx()
-        
+
         // 1. Draw 3 concentric hex rings
         for (i in 1..3) {
             val ringRadius = radius * (i / 3f)
@@ -220,18 +278,24 @@ private fun StatRadar(stats: PlayerStats) {
                 center.y + radius * sin(angle).toFloat()
             )
             drawLine(colors.outlineVariant, center, end, strokeWidth = 1.dp.toPx(), alpha = 0.6f)
-            
+
             // Labels and Values
             val labelRadius = radius + 20.dp.toPx()
             val lx = center.x + labelRadius * cos(angle).toFloat()
             val ly = center.y + labelRadius * sin(angle).toFloat()
-            
+
             val labelText = labels[j]
             val valueText = statValues[j].toInt().toString()
-            
-            val labelLayout = textMeasurer.measure(labelText, shadowTypography.statLabel.copy(color = colors.onSurfaceVariant))
-            val valueLayout = textMeasurer.measure(valueText, shadowTypography.timer.copy(color = colors.onSurface, fontSize = 12.sp))
-            
+
+            val labelLayout = textMeasurer.measure(
+                labelText,
+                shadowTypography.statLabel.copy(color = colors.onSurfaceVariant)
+            )
+            val valueLayout = textMeasurer.measure(
+                valueText,
+                shadowTypography.timer.copy(color = colors.onSurface, fontSize = 12.sp)
+            )
+
             drawText(
                 textLayoutResult = labelLayout,
                 topLeft = Offset(lx - labelLayout.size.width / 2, ly - labelLayout.size.height)
@@ -277,21 +341,31 @@ private fun StatRadar(stats: PlayerStats) {
 @Composable
 fun StatusScreenPreview() {
     HabitLevelingTheme(darkTheme = true) {
-        StatusScreen(
-            player = Player(
-                name = "SUNG JIN-WOO",
-                jobClass = "SHADOW MONARCH",
-                title = "WOLF SLAYER",
-                rank = "S",
-                level = 10,
-                hp = 850,
-                maxHp = 1000,
-                mp = 450,
-                maxMp = 500,
-                remainingStatPoints = 5,
-                gold = 12500,
-                stats = PlayerStats(strength = 80, agility = 75, intelligence = 40, vitality = 90, perception = 60)
+        val player = Player(
+            name = "SUNG JIN-WOO",
+            jobClass = "SHADOW MONARCH",
+            title = "WOLF SLAYER",
+            rank = "S",
+            level = 10,
+            hp = 850,
+            maxHp = 1000,
+            mp = 450,
+            maxMp = 500,
+            remainingStatPoints = 5,
+            gold = 12500,
+            stats = PlayerStats(
+                strength = 80,
+                agility = 75,
+                intelligence = 40,
+                vitality = 90,
+                perception = 60
             )
         )
+        Column() {
+            PlayerHeader(player)
+            StatusScreen(
+                player
+            )
+        }
     }
 }
