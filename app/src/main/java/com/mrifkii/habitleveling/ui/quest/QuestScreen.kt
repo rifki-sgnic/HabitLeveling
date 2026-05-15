@@ -1,5 +1,6 @@
 package com.mrifkii.habitleveling.ui.quest
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -11,10 +12,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.CircularProgressIndicator
@@ -30,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -143,18 +147,34 @@ fun QuestScreen(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
+            val listState = rememberLazyListState()
+            val animatedItems = remember { mutableStateSetOf<Int>() }
+
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 itemsIndexed(quests) { index, quest ->
-                    // Staggered Glitch animation
-                    var visible by remember { mutableStateOf(false) }
-                    LaunchedEffect(Unit) { visible = true }
+                    val visibleIndices = listState.layoutInfo.visibleItemsInfo.map { it.index }.toSet()
+                    val isCurrentlyVisible = index in visibleIndices
+
+                    // Add when visible, remove when scrolled past bottom (not top)
+                    val lastVisible = visibleIndices.maxOrNull() ?: 0
+                    when {
+                        isCurrentlyVisible -> animatedItems.add(index)
+                        index > lastVisible -> animatedItems.remove(index)
+                    }
+
                     val alpha by animateFloatAsState(
-                        targetValue = if (visible) 1f else 0f,
-                        animationSpec = tween(300, delayMillis = index * 100),
-                        label = "StaggeredAlpha"
+                        targetValue = if (index in animatedItems) 1f else 0f,
+                        animationSpec = tween(500),
+                        label = "alpha"
+                    )
+                    val offsetY by animateDpAsState(
+                        targetValue = if (index in animatedItems) 0.dp else 24.dp,
+                        animationSpec = tween(500),
+                        label = "offset"
                     )
 
                     QuestCard(
@@ -163,14 +183,14 @@ fun QuestScreen(
                         rewardXp = quest.rewardXp.toInt(),
                         isCompleted = quest.isCompleted,
                         onComplete = { onCompleteQuest(quest) },
-                        modifier = Modifier.alpha(alpha),
+                        modifier = Modifier
+                            .alpha(alpha)
+                            .offset(y = offsetY),
                         tag = "DAILY ${index + 1}"
                     )
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(100.dp))
-                }
+                item { Spacer(modifier = Modifier.height(100.dp)) }
             }
         }
     }
