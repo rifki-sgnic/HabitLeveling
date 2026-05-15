@@ -40,7 +40,7 @@ fun HudPanel(
         label = "scanlineY"
     )
 
-    Box(modifier = modifier.padding(2.dp)) { // Outer padding for brackets
+    Box(modifier = modifier.padding(top = 10.dp, start = 2.dp, end = 2.dp, bottom = 2.dp)) { // Outer padding for brackets
         OutlinedCard(
             modifier = Modifier
                 .fillMaxWidth()
