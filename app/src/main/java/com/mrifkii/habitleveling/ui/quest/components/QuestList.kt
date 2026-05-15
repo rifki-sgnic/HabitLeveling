@@ -19,7 +19,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.mrifkii.habitleveling.domain.model.Quest
 import com.mrifkii.habitleveling.domain.model.QuestType
-import com.mrifkii.habitleveling.ui.components.QuestCard
+import com.mrifkii.habitleveling.ui.quest.components.QuestCard
 
 @Composable
 fun QuestList(
