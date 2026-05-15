@@ -1,21 +1,28 @@
 package com.mrifkii.habitleveling.domain.usecase
 
-import com.mrifkii.habitleveling.domain.model.Player
 import com.mrifkii.habitleveling.domain.model.Quest
 import com.mrifkii.habitleveling.domain.model.QuestType
+import com.mrifkii.habitleveling.domain.repository.PlayerRepository
+import com.mrifkii.habitleveling.domain.repository.QuestRepository
 import com.mrifkii.habitleveling.domain.service.LevelingService
+import kotlinx.coroutines.flow.first
+import javax.inject.Inject
 
-class CompleteQuestUseCase(
+class CompleteQuestUseCase @Inject constructor(
+    private val playerRepository: PlayerRepository,
+    private val questRepository: QuestRepository,
     private val levelingService: LevelingService
 ) {
-    operator fun invoke(player: Player, quest: Quest): Pair<Player, Quest> {
-        if (quest.isCompleted) return Pair(player, quest)
+    suspend operator fun invoke(quest: Quest) {
+        if (quest.isCompleted) return
 
+        val player = playerRepository.getPlayer().first() ?: return
+        
+        // 1. Mark quest as completed
         val updatedQuest = quest.copy(isCompleted = true)
         
-        // Cek apakah quest ini adalah quest rank-up (tipe RANK_UP)
+        // 2. Process Leveling & Rewards
         val isRankUpQuest = quest.type == QuestType.RANK_UP
-        
         var updatedPlayer = levelingService.processXpGain(
             player = player, 
             xpGain = quest.rewardXp, 
@@ -27,6 +34,8 @@ class CompleteQuestUseCase(
             remainingStatPoints = updatedPlayer.remainingStatPoints + quest.rewardStatPoints
         )
 
-        return Pair(updatedPlayer, updatedQuest)
+        // 3. Persist changes
+        questRepository.updateQuest(updatedQuest)
+        playerRepository.updatePlayer(updatedPlayer)
     }
 }

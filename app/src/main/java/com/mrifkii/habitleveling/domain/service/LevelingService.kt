@@ -87,7 +87,7 @@ class LevelingService {
     /**
      * Memeriksa apakah player berada di level maksimal untuk rank-nya.
      */
-    private fun isAtRankLevelCap(level: Int, rank: String): Boolean {
+    fun isAtRankLevelCap(level: Int, rank: String): Boolean {
         return when (rank.uppercase()) {
             "E" -> level >= 25
             "D" -> level >= 35

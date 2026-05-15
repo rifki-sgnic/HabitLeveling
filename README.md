@@ -76,4 +76,4 @@ GEMINI_API_KEY=AIzaSyA... (Replace with your actual API Key)
 ## 🤝 Contribution
 Want to help develop "The System"? Feel free to open an *Issue* or submit a *Pull Request*.
 
-*Developed by [rifki-sgnic](https://github.com/rifki-sgnic)*
+*Developed by [rifki-sgnic](https://github.com/rifki-sgnic) and [setyobagus01](https://github.com/setyobagus01)*

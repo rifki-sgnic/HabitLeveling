@@ -2,7 +2,9 @@ package com.mrifkii.habitleveling.ui.status
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mrifkii.habitleveling.domain.repository.PlayerRepository
+import com.mrifkii.habitleveling.domain.service.LevelingService
+import com.mrifkii.habitleveling.domain.usecase.GetPlayerUseCase
+import com.mrifkii.habitleveling.domain.usecase.IncreaseStatUseCase
 import com.mrifkii.habitleveling.ui.model.PlayerUIState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -14,14 +16,17 @@ import javax.inject.Inject
 
 @HiltViewModel
 class StatusViewModel @Inject constructor(
-    private val repository: PlayerRepository
+    private val getPlayerUseCase: GetPlayerUseCase,
+    private val increaseStatUseCase: IncreaseStatUseCase,
+    private val levelingService: LevelingService
 ) : ViewModel() {
 
-    val uiState: StateFlow<PlayerUIState> = repository.getPlayer()
+    val uiState: StateFlow<PlayerUIState> = getPlayerUseCase()
         .map { player ->
             PlayerUIState(
                 isLoading = false,
-                player = player
+                player = player,
+                isAtLevelCap = player?.let { levelingService.isAtRankLevelCap(it.level, it.rank) } ?: false
             )
         }
         .stateIn(
@@ -30,49 +35,9 @@ class StatusViewModel @Inject constructor(
             initialValue = PlayerUIState(isLoading = true)
         )
 
-
-
     fun increaseStat(statType: StatType) {
         viewModelScope.launch {
-
-            val currentPlayer = uiState.value.player ?: return@launch
-
-            if (currentPlayer.remainingStatPoints <= 0) return@launch
-
-            val updatedStats = when (statType) {
-                StatType.STRENGTH ->
-                    currentPlayer.stats.copy(
-                        strength = currentPlayer.stats.strength + 1
-                    )
-
-                StatType.VITALITY ->
-                    currentPlayer.stats.copy(
-                        vitality = currentPlayer.stats.vitality + 1
-                    )
-
-                StatType.AGILITY ->
-                    currentPlayer.stats.copy(
-                        agility = currentPlayer.stats.agility + 1
-                    )
-
-                StatType.INTELLIGENCE ->
-                    currentPlayer.stats.copy(
-                        intelligence = currentPlayer.stats.intelligence + 1
-                    )
-
-                StatType.PERCEPTION ->
-                    currentPlayer.stats.copy(
-                        perception = currentPlayer.stats.perception + 1
-                    )
-            }
-
-            repository.updatePlayer(
-                currentPlayer.copy(
-                    stats = updatedStats,
-                    remainingStatPoints =
-                        currentPlayer.remainingStatPoints - 1
-                )
-            )
+            increaseStatUseCase(statType)
         }
     }
 }
