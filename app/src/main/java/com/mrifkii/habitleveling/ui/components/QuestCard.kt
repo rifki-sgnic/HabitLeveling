@@ -62,7 +62,7 @@ fun QuestCard(
             }
 
             Text(
-                text = "${rewardXp} XP",
+                text = "$rewardXp XP",
                 style = shadowTypography.statNumber.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize),
                 color = if (isCompleted) shadowColors.success.color else colors.primary
             )

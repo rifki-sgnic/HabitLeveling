@@ -1,55 +1,26 @@
 package com.mrifkii.habitleveling.ui.quest
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateSetOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.mrifkii.habitleveling.domain.model.Player
-import com.mrifkii.habitleveling.domain.model.PlayerStats
 import com.mrifkii.habitleveling.domain.model.Quest
 import com.mrifkii.habitleveling.domain.model.QuestType
 import com.mrifkii.habitleveling.ui.components.PlayerHeader
-import com.mrifkii.habitleveling.ui.components.QuestCard
 import com.mrifkii.habitleveling.ui.components.SystemMessage
 import com.mrifkii.habitleveling.ui.model.QuestUIState
+import com.mrifkii.habitleveling.ui.quest.components.QuestCategoryList
+import com.mrifkii.habitleveling.ui.quest.components.QuestList
 import com.mrifkii.habitleveling.ui.theme.HabitLevelingTheme
 import com.mrifkii.habitleveling.ui.theme.LocalShadowTypography
 
@@ -70,7 +41,6 @@ fun QuestRoute(
                 uiState = uiState
             )
         } ?: run {
-            // Show loading if player is not yet available
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -89,22 +59,33 @@ fun QuestScreen(
     val shadowTypography = LocalShadowTypography.current
 
     val snackbarHostState = remember { SnackbarHostState() }
+    
+    var selectedType by remember { mutableStateOf<QuestType?>(null) }
+
+    // Intercept back button to return to Quest Hub
+    BackHandler(enabled = selectedType != null) {
+        selectedType = null
+    }
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let {
             snackbarHostState.showSnackbar(it)
         }
     }
+
     Scaffold(
-        snackbarHost = {
-            SnackbarHost(snackbarHostState)
-        }
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(colors.background)
-                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = paddingValues.calculateBottomPadding(),
+                    top = 24.dp // Use our own top padding instead of Scaffold's
+                )
         ) {
             // [SYSTEM] Title Row
             Row(
@@ -112,17 +93,25 @@ fun QuestScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "DAILY QUESTS",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = colors.primary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (selectedType != null) {
+                        IconButton(onClick = { selectedType = null }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = "BACK",
+                                tint = colors.primary
+                            )
+                        }
+                    }
+                    Text(
+                        text = selectedType?.name?.replace("_", " ") ?: "QUEST HUB",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = colors.primary
+                    )
+                }
 
                 if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp
-                    )
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
                     IconButton(onClick = onGenerateAiQuests) {
                         Icon(
@@ -135,7 +124,7 @@ fun QuestScreen(
             }
 
             Text(
-                text = "[ PREPARATION FOR BECOMING STRONG ]",
+                text = if (selectedType == null) "[ SELECT MISSION CATEGORY ]" else "[ MISSION IN PROGRESS ]",
                 style = shadowTypography.section,
                 color = colors.primary,
                 modifier = Modifier.padding(bottom = 24.dp)
@@ -143,118 +132,44 @@ fun QuestScreen(
 
             // Igris message
             SystemMessage(
-                message = "Incomplete quests will lead to penalty. Dismissal is not an option.",
+                message = if (selectedType == QuestType.RANK_UP)
+                    "This is the path of the Monarch. Failure is death."
+                else 
+                    "Incomplete quests will lead to penalty. Dismissal is not an option.",
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            val listState = rememberLazyListState()
-            val animatedItems = remember { mutableStateSetOf<Int>() }
-
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                itemsIndexed(quests) { index, quest ->
-                    val visibleIndices = listState.layoutInfo.visibleItemsInfo.map { it.index }.toSet()
-                    val isCurrentlyVisible = index in visibleIndices
-
-                    // Add when visible, remove when scrolled past bottom (not top)
-                    val lastVisible = visibleIndices.maxOrNull() ?: 0
-                    when {
-                        isCurrentlyVisible -> animatedItems.add(index)
-                        index > lastVisible -> animatedItems.remove(index)
-                    }
-
-                    val alpha by animateFloatAsState(
-                        targetValue = if (index in animatedItems) 1f else 0f,
-                        animationSpec = tween(500),
-                        label = "alpha"
+            AnimatedContent(
+                targetState = selectedType,
+                label = "QuestNavigation"
+            ) { type ->
+                if (type == null) {
+                    QuestCategoryList(
+                        quests = quests,
+                        onTypeSelected = { selectedType = it }
                     )
-                    val offsetY by animateDpAsState(
-                        targetValue = if (index in animatedItems) 0.dp else 24.dp,
-                        animationSpec = tween(500),
-                        label = "offset"
-                    )
-
-                    QuestCard(
-                        title = quest.title,
-                        meta = quest.description,
-                        rewardXp = quest.rewardXp.toInt(),
-                        isCompleted = quest.isCompleted,
-                        onComplete = { onCompleteQuest(quest) },
-                        modifier = Modifier
-                            .alpha(alpha)
-                            .offset(y = offsetY),
-                        tag = "DAILY ${index + 1}"
+                } else {
+                    QuestList(
+                        quests = quests.filter { it.type == type },
+                        onCompleteQuest = onCompleteQuest
                     )
                 }
-
-                item { Spacer(modifier = Modifier.height(100.dp)) }
             }
         }
     }
-
 }
 
 @Preview(showBackground = true)
 @Composable
 fun QuestScreenPreview() {
     HabitLevelingTheme {
-        val player = Player(
-            name = "SUNG JIN-WOO",
-            jobClass = "SHADOW MONARCH",
-            title = "WOLF SLAYER",
-            rank = "E",
-            level = 25,
-            hp = 850,
-            maxHp = 1000,
-            mp = 450,
-            maxMp = 500,
-            remainingStatPoints = 5,
-            gold = 12500,
-            stats = PlayerStats(
-                strength = 80,
-                agility = 75,
-                intelligence = 40,
-                vitality = 90,
-                perception = 60
-            )
+        QuestScreen(
+            quests = listOf(
+                Quest("1", "Push-ups", "100 times", QuestType.DAILY),
+                Quest("2", "Rank Up: Arise", "Defeat the shadows", QuestType.RANK_UP)
+            ),
+            onCompleteQuest = {},
+            uiState = QuestUIState()
         )
-        Column {
-            PlayerHeader(player)
-
-            QuestScreen(
-                quests = listOf(
-                    Quest(
-                        "1",
-                        "Push-ups",
-                        "100 times (0/100)",
-                        QuestType.DAILY,
-                        rewardXp = 20f,
-                        rewardGold = 100
-                    ),
-                    Quest(
-                        "2",
-                        "Sit-ups",
-                        "100 times (0/100)",
-                        QuestType.DAILY,
-                        rewardXp = 20f,
-                        rewardGold = 100
-                    ),
-                    Quest(
-                        "3",
-                        "Running",
-                        "10 km (0/10)",
-                        QuestType.DAILY,
-                        isCompleted = true,
-                        rewardXp = 40f,
-                        rewardGold = 200
-                    )
-                ),
-                onCompleteQuest = {},
-                uiState = QuestUIState()
-            )
-        }
     }
 }

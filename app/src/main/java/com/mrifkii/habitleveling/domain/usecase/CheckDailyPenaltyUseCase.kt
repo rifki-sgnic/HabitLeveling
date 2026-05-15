@@ -1,6 +1,5 @@
 package com.mrifkii.habitleveling.domain.usecase
 
-import com.mrifkii.habitleveling.domain.model.Quest
 import com.mrifkii.habitleveling.domain.model.QuestType
 import com.mrifkii.habitleveling.domain.repository.PlayerRepository
 import com.mrifkii.habitleveling.domain.repository.QuestRepository

@@ -23,8 +23,30 @@ object DomainModule {
 
     @Provides
     @Singleton
-    fun provideCompleteQuestUseCase(levelingService: LevelingService): CompleteQuestUseCase {
-        return CompleteQuestUseCase(levelingService)
+    fun provideGetPlayerUseCase(repository: PlayerRepository): GetPlayerUseCase {
+        return GetPlayerUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGetQuestsUseCase(repository: QuestRepository): GetQuestsUseCase {
+        return GetQuestsUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideIncreaseStatUseCase(repository: PlayerRepository): IncreaseStatUseCase {
+        return IncreaseStatUseCase(repository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCompleteQuestUseCase(
+        playerRepository: PlayerRepository,
+        questRepository: QuestRepository,
+        levelingService: LevelingService
+    ): CompleteQuestUseCase {
+        return CompleteQuestUseCase(playerRepository, questRepository, levelingService)
     }
 
     @Provides
