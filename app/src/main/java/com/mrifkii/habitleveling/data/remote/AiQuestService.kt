@@ -62,10 +62,11 @@ class AiQuestService @Inject constructor(
             - id: unique string (e.g., 'gen_daily_001')
             - title: short epic name
             - description: clear instruction with EXACT quantity
-            - type: string (Either 'DAILY' or 'RANK_UP')
+            - type: string (DAILY | RANK_UP | EMERGENCY | SPECIAL | JOB_CHANGE | PENALTY)
             - rewardXp: float
             - rewardGold: integer
             - rewardStatPoints: integer
+     
             
             No markdown, no explanation. Just the JSON array.
         """.trimIndent()
