@@ -3,12 +3,15 @@ package com.mrifkii.habitleveling.domain.usecase
 
 import android.util.Log
 import com.mrifkii.habitleveling.data.remote.AiQuestService
+import com.mrifkii.habitleveling.domain.model.QuestType
 import com.mrifkii.habitleveling.domain.model.Resource
 import com.mrifkii.habitleveling.domain.repository.PlayerRepository
 import com.mrifkii.habitleveling.domain.repository.QuestRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.inject.Inject
@@ -21,7 +24,10 @@ class GenerateAiQuestsUseCase @Inject constructor(
      operator fun invoke(): Flow<Resource<Unit>> = flow {
         emit(Resource.Loading)
         try {
-            val player = playerRepository.getPlayer().first() ?: return@flow
+            val player = playerRepository.getPlayer().first() ?: run {
+                emit(Resource.Error("No player found"))
+                return@flow
+            }
             val previousQuests = questRepository.getQuests().first()
 
             val newQuests = aiQuestService.generateQuests(player, previousQuests)
@@ -48,5 +54,5 @@ class GenerateAiQuestsUseCase @Inject constructor(
                 e.message.toString()
             ))
         }
-    }
+    }.flowOn(Dispatchers.IO)
 }
