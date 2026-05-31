@@ -10,9 +10,11 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class QuestRepositoryImpl @Inject constructor(
-    private val dao: QuestDao
+    private val dao: QuestDao,
 ) : QuestRepository {
     override fun getQuests(): Flow<List<Quest>> {
+
+
         return dao.getAllQuests().map { entities ->
             entities.map { it.toDomain() }
         }

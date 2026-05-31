@@ -9,6 +9,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
+import com.mrifkii.habitleveling.ui.theme.HabitLevelingTheme
 import com.mrifkii.habitleveling.domain.model.Player
 import com.mrifkii.habitleveling.ui.theme.LocalShadowColors
 import com.mrifkii.habitleveling.ui.theme.LocalShadowTypography
@@ -70,6 +72,8 @@ fun PlayerHeader(
             ) {
                 // XP Bar (1fr)
                 Column(modifier = Modifier.weight(1f)) {
+                    val requiredXp = player.level * 100f
+                    val xpProgress = (player.xp / requiredXp).coerceIn(0f, 1f)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -81,14 +85,14 @@ fun PlayerHeader(
                             color = shadowColors.xp.color
                         )
                         Text(
-                            text = "${(player.level * 100)} / ${(player.level + 1) * 100}",
+                            text = "${player.xp.toInt()} / ${requiredXp.toInt()}",
                             style = shadowTypography.timer.copy(fontSize = shadowTypography.systemTag.fontSize),
                             color = colors.onSurface
                         )
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     LinearProgressIndicator(
-                        progress = { 0.5f },
+                        progress = { xpProgress },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(4.dp),
@@ -137,5 +141,25 @@ fun PlayerHeader(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PlayerHeaderPreview() {
+    HabitLevelingTheme {
+        PlayerHeader(
+            player = Player(
+                name = "Sung Jin-Woo",
+                level = 40,
+                rank = "C",
+                jobClass = "Shadow Monarch",
+                hp = 1200,
+                maxHp = 1500,
+                mp = 450,
+                maxMp = 600,
+                xp = 1500f
+            )
+        )
     }
 }

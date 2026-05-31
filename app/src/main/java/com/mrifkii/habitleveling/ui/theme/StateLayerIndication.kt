@@ -2,14 +2,12 @@ package com.mrifkii.habitleveling.ui.theme
 
 import androidx.compose.foundation.IndicationNodeFactory
 import androidx.compose.foundation.interaction.*
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.invalidateDraw
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 object ShadowStateIndication : IndicationNodeFactory {

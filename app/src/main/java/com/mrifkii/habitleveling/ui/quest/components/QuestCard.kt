@@ -1,4 +1,4 @@
-package com.mrifkii.habitleveling.ui.components
+package com.mrifkii.habitleveling.ui.quest.components
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -28,7 +28,7 @@ fun QuestCard(
     val shadowTypography = LocalShadowTypography.current
     val shadowColors = LocalShadowColors.current
 
-    HudPanel(
+    _root_ide_package_.com.mrifkii.habitleveling.ui.components.HudPanel(
         isActive = !isCompleted,
         tag = tag,
         modifier = modifier
@@ -62,7 +62,7 @@ fun QuestCard(
             }
 
             Text(
-                text = "${rewardXp} XP",
+                text = "$rewardXp XP",
                 style = shadowTypography.statNumber.copy(fontSize = MaterialTheme.typography.titleMedium.fontSize),
                 color = if (isCompleted) shadowColors.success.color else colors.primary
             )
